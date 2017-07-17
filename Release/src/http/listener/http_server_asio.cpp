@@ -312,6 +312,9 @@ void connection::handle_http_line(const boost::system::error_code& ec)
             m_close = true;
         }
 
+        // Get the remote IP address
+        m_request._get_impl()->_set_remote_address(utility::conversions::to_string_t(m_socket->remote_endpoint().address().to_string()));
+
         handle_headers();
     }
 }
