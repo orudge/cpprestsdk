@@ -17,6 +17,10 @@
 
 #if _WIN32_WINNT >= _WIN32_WINNT_VISTA
 
+#include <mstcpip.h>
+
+#pragma comment(lib, "ntdll.lib")
+
 using namespace web;
 using namespace utility;
 using namespace concurrency;
@@ -553,19 +557,20 @@ void windows_request_context::read_headers_io_completion(DWORD error_code, DWORD
         parse_http_headers(m_request->Headers, m_msg.headers());
 
         // Retrieve the remote IP address
-        std::vector<wchar_t> remoteAddressBuffer(50);
-        PVOID inAddr;
+        std::vector<wchar_t> remoteAddressBuffer(INET6_ADDRSTRLEN);
 
         if (m_request->Address.pRemoteAddress->sa_family == AF_INET6)
         {
-            inAddr = &reinterpret_cast<SOCKADDR_IN6 *>(m_request->Address.pRemoteAddress)->sin6_addr;
+            SOCKADDR_IN6 *sockAddr6 = reinterpret_cast<SOCKADDR_IN6 *>(m_request->Address.pRemoteAddress);
+            ULONG len = static_cast<ULONG>(remoteAddressBuffer.size());
+            RtlIpv6AddressToStringExW(&sockAddr6->sin6_addr, sockAddr6->sin6_scope_id, 0, &remoteAddressBuffer[0], &len);
         }
         else
         {
-            inAddr = &reinterpret_cast<SOCKADDR_IN *>(m_request->Address.pRemoteAddress)->sin_addr;
+            SOCKADDR_IN *sockAddr4 = reinterpret_cast<SOCKADDR_IN *>(m_request->Address.pRemoteAddress);
+            RtlIpv4AddressToStringW(&sockAddr4->sin_addr, &remoteAddressBuffer[0]);
         }
 
-        InetNtopW(m_request->Address.pRemoteAddress->sa_family, inAddr, &remoteAddressBuffer[0], remoteAddressBuffer.size());
         m_msg._get_impl()->_set_remote_address(std::wstring(&remoteAddressBuffer[0]));
 
         // Start reading in body from the network.
