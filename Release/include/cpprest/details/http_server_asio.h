@@ -159,7 +159,22 @@ public:
         std::istringstream hostport_in(hostport);
         hostport_in.imbue(std::locale::classic());
 
-        std::getline(hostport_in, m_host, ':');
+        // Check if a bracketed IPv6 address is present
+        if (hostport_in.peek() == '[')
+        {
+            hostport_in.get();
+            std::getline(hostport_in, m_host, ']');
+
+            if (hostport_in.peek() == ':')
+            {
+                hostport_in.get();
+            }
+        }
+        else
+        {
+            std::getline(hostport_in, m_host, ':');
+        }
+
         std::getline(hostport_in, m_port);
     }
 
